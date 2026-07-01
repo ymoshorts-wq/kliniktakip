@@ -1,4 +1,5 @@
-import type { PaymentStatus } from '../../types/database'
+import type { PaymentStatus, Patient } from '../../types/database'
+import { getDisplayPaymentStatus } from '../../lib/payment'
 
 const styles: Record<PaymentStatus, string> = {
   Ödendi: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
@@ -8,15 +9,20 @@ const styles: Record<PaymentStatus, string> = {
 
 interface PaymentBadgeProps {
   status: PaymentStatus
+  patient?: Pick<Patient, 'total_amount' | 'paid_amount' | 'payment_status'>
   className?: string
 }
 
-export function PaymentBadge({ status, className = '' }: PaymentBadgeProps) {
+export function PaymentBadge({ status, patient, className = '' }: PaymentBadgeProps) {
+  const effectiveStatus = patient
+    ? getDisplayPaymentStatus(patient)
+    : status
+
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${styles[status]} ${className}`}
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${styles[effectiveStatus]} ${className}`}
     >
-      {status}
+      {effectiveStatus}
     </span>
   )
 }

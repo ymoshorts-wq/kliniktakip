@@ -1,4 +1,4 @@
-import type { Patient } from '../types/database'
+import type { Patient, PaymentStatus } from '../types/database'
 
 export function summarizeTransactions(transactions: {
   transaction_type: 'debt' | 'payment'
@@ -31,3 +31,19 @@ export function summarizeTransactions(transactions: {
     payment_status,
   }
 }
+
+export function getDisplayPaymentStatus(
+  patient: Pick<Patient, 'total_amount' | 'paid_amount' | 'payment_status'>,
+): PaymentStatus {
+  const total = Number(patient.total_amount) || 0
+  const paid = Number(patient.paid_amount) || 0
+
+  // Hiç işlem olmayan (0 / 0) durumunda "Ödenmedi" göstermek yerine "Ödendi" kabul et
+  if (total === 0 && paid === 0) {
+    return 'Ödendi'
+  }
+
+  return patient.payment_status
+}
+
+

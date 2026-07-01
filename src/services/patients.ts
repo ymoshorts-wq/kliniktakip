@@ -1,4 +1,5 @@
 import { requireSupabaseClient } from '../lib/client'
+import { summarizeTransactions } from '../lib/payment'
 import type { Patient, PatientInput, PatientTransaction } from '../types/database'
 
 const PATIENT_SELECT = '*'
@@ -107,6 +108,51 @@ export async function addPatientTransaction(
 
   if (error) throw error
   return data as PatientTransaction
+}
+
+export async function deletePatientTransaction(id: string): Promise<void> {
+  const supabase = requireSupabaseClient()
+  const { error } = await supabase
+    .from('patient_transactions')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
+export async function recalculatePatientPayments(
+  patientId: string,
+): Promise<Patient | null> {
+  const supabase = requireSupabaseClient()
+
+  const { data: txs, error: txError } = await supabase
+    .from('patient_transactions')
+    .select('transaction_type, amount')
+    .eq('patient_id', patientId)
+
+  if (txError) throw txError
+
+  const summary = summarizeTransactions(
+    (txs ?? []).map((trx: any) => ({
+      transaction_type: trx.transaction_type,
+      amount: Number(trx.amount),
+    })),
+  )
+
+  const { data, error } = await supabase
+    .from('patients')
+    .update({
+      total_amount: summary.total_amount,
+      paid_amount: summary.paid_amount,
+      remaining_amount: summary.remaining_amount,
+      payment_status: summary.payment_status,
+    })
+    .eq('id', patientId)
+    .select(PATIENT_SELECT)
+    .maybeSingle()
+
+  if (error) throw error
+  return (data as Patient) ?? null
 }
 
 export async function countPatients(): Promise<number> {

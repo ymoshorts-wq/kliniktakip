@@ -4,8 +4,10 @@ import { formatDate, formatDateTime, formatMoney } from '../../lib/format'
 import { fetchAppointmentsByPatient } from '../../services/appointments'
 import {
   addPatientTransaction,
+  deletePatientTransaction,
   fetchPatientTransactions,
   fetchPatientById,
+  recalculatePatientPayments,
   updatePatient,
 } from '../../services/patients'
 import { fetchAnamnesisByPatient, upsertAnamnesis } from '../../services/anamneses'
@@ -157,6 +159,43 @@ export function PatientDetail({
       }
     },
     [txAmount, txDescription, txType, patient.id, onPatientUpdated, loadTransactions],
+  )
+
+  const handleDeleteTransaction = useCallback(
+    async (trx: PatientTransaction) => {
+      if (
+        !window.confirm(
+          'Bu işlem kaydını silmek istediğinize emin misiniz? İşlem geri alınamaz.',
+        )
+      ) {
+        return
+      }
+
+      setTxError(null)
+      try {
+        await deletePatientTransaction(trx.id)
+
+        // İşlemi listeden çıkar
+        setTransactions((current) => current.filter((t) => t.id !== trx.id))
+
+        // Hastanın ödeme özetini tekrar hesapla
+        try {
+          const updated = await recalculatePatientPayments(patient.id)
+          if (updated && onPatientUpdated) {
+            onPatientUpdated(updated)
+          }
+        } catch {
+          // Özet yenileme hatasını sessizce yut
+        }
+      } catch (err) {
+        setTxError(
+          err instanceof Error
+            ? err.message
+            : 'İşlem silinirken bir hata oluştu.',
+        )
+      }
+    },
+    [onPatientUpdated, patient.id],
   )
 
   useEffect(() => {
@@ -639,9 +678,19 @@ export function PatientDetail({
                       </p>
                     )}
                   </div>
-                  <span className="shrink-0 text-[11px] text-slate-400">
-                    {formatDateTime(trx.created_at)}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-[11px] text-slate-400">
+                      {formatDateTime(trx.created_at)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteTransaction(trx)}
+                      className="rounded-full p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                      aria-label="İşlemi sil"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))
             )}

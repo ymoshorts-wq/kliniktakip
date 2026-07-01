@@ -242,7 +242,10 @@ export function PatientsPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <PaymentBadge status={patient.payment_status} />
+                      <PaymentBadge
+                        status={patient.payment_status}
+                        patient={patient}
+                      />
                       {Number(patient.remaining_amount) > 0 && (
                         <span className="text-xs font-medium text-rose-600">
                           {formatMoney(Number(patient.remaining_amount))} ₺

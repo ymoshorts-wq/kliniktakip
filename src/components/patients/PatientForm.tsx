@@ -28,8 +28,8 @@ export function PatientForm({
   useEffect(() => {
     if (open) {
       setFullName(patient?.full_name ?? '')
-      setPhone(patient?.phone ?? '')
-      setIdentityNo(patient?.identity_no ?? '')
+      setPhone((patient?.phone ?? '').replace(/\D/g, ''))
+      setIdentityNo((patient?.identity_no ?? '').replace(/\D/g, '').slice(0, 11))
       setNotes(patient?.notes ?? '')
       setError(null)
     }
@@ -96,9 +96,14 @@ export function PatientForm({
             <span className={labelClassName}>Telefon</span>
             <input
               type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
               required
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value.replace(/\D/g, '')
+                setPhone(value)
+              }}
               placeholder="05xx xxx xx xx"
               className={inputClassName}
             />
@@ -108,9 +113,15 @@ export function PatientForm({
         <label className="block">
           <span className={labelClassName}>TC Kimlik No (isteğe bağlı)</span>
           <input
-            type="text"
+            type="tel"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={11}
             value={identityNo}
-            onChange={(event) => setIdentityNo(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value.replace(/\D/g, '').slice(0, 11)
+              setIdentityNo(value)
+            }}
             placeholder="11 haneli T.C. kimlik no"
             className={inputClassName}
           />
